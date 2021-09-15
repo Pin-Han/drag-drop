@@ -1,11 +1,49 @@
-//validation
+// Project State Management
+
+class ProjectState {
+  private listeners: any[] = [];
+  private projects: any[] = [];
+  private static instance: ProjectState;
+
+  private constructor() { }
+
+  static getInstance() {
+    if (this.instance) {
+      return this.instance;
+    }
+    this.instance = new ProjectState();
+    return this.instance;
+  }
+
+  addListener(listenerFn: Function) {
+    this.listeners.push(listenerFn);
+  }
+
+  addProject(title: string, description: string, numOfPeople: number) {
+    const newProject = {
+      id: Math.random().toString(),
+      title: title,
+      description: description,
+      people: numOfPeople
+    };
+    this.projects.push(newProject);
+    console.log('listener', this.listeners, this.projects)
+    for (const listenerFn of this.listeners) {
+      listenerFn(this.projects.slice());
+    }
+  }
+}
+
+const projectState = ProjectState.getInstance();
+console.log('projectState', projectState)
+// Validation
 interface Validatable {
   value: string | number;
   required?: boolean;
   minLength?: number;
   maxLength?: number;
   min?: number;
-  max?: number
+  max?: number;
 }
 
 function validate(validatableInput: Validatable) {
@@ -41,6 +79,7 @@ function validate(validatableInput: Validatable) {
   }
   return isValid;
 }
+
 // autobind decorator
 function autobind(_: any, _2: string, descriptor: PropertyDescriptor) {
   const originalMethod = descriptor.value;
@@ -54,25 +93,51 @@ function autobind(_: any, _2: string, descriptor: PropertyDescriptor) {
   return adjDescriptor;
 }
 
-//ProjectList class
+// ProjectList Class
 class ProjectList {
   templateElement: HTMLTemplateElement;
   hostElement: HTMLDivElement;
   element: HTMLElement;
+  assignedProjects: any[];
 
   constructor(private type: 'active' | 'finished') {
-    this.templateElement = document.getElementById('project-list')! as HTMLTemplateElement;
+    this.templateElement = document.getElementById(
+      'project-list'
+    )! as HTMLTemplateElement;
     this.hostElement = document.getElementById('app')! as HTMLDivElement;
-    const importedNode = document.importNode(this.templateElement.content, true);
+    this.assignedProjects = [];
+
+    const importedNode = document.importNode(
+      this.templateElement.content,
+      true
+    );
     this.element = importedNode.firstElementChild as HTMLElement;
-    this.element.id = `${this.type}-projects`
-    this.attach()
-    this.renderContent()
+    this.element.id = `${this.type}-projects`;
+
+    projectState.addListener((projects: any[]) => {
+      console.log('project', projects)
+      this.assignedProjects = projects;
+      this.renderProjects();
+    });
+
+    this.attach();
+    this.renderContent();
   }
+
+  private renderProjects() {
+    const listEl = document.getElementById(`${this.type}-projects-list`)! as HTMLUListElement;
+    for (const prjItem of this.assignedProjects) {
+      const listItem = document.createElement('li');
+      listItem.textContent = prjItem.title;
+      listEl.appendChild(listItem)
+    }
+  }
+
   private renderContent() {
-    const listId = `${this.type}-project-list`;
+    const listId = `${this.type}-projects-list`;
     this.element.querySelector('ul')!.id = listId;
-    this.element.querySelector('h2')!.textContent = `${this.type.toUpperCase()} PROJECTS`
+    this.element.querySelector('h2')!.textContent =
+      this.type.toUpperCase() + ' PROJECTS';
   }
 
   private attach() {
@@ -80,9 +145,8 @@ class ProjectList {
   }
 }
 
-//ProjectInput class
+// ProjectInput Class
 class ProjectInput {
-  //This type is globally available because we add 'dom' in the tsconfig.json lib
   templateElement: HTMLTemplateElement;
   hostElement: HTMLDivElement;
   element: HTMLFormElement;
@@ -91,16 +155,27 @@ class ProjectInput {
   peopleInputElement: HTMLInputElement;
 
   constructor() {
-    this.templateElement = document.getElementById('project-input')! as HTMLTemplateElement;
+    this.templateElement = document.getElementById(
+      'project-input'
+    )! as HTMLTemplateElement;
     this.hostElement = document.getElementById('app')! as HTMLDivElement;
 
-    const importedNode = document.importNode(this.templateElement.content, true);
+    const importedNode = document.importNode(
+      this.templateElement.content,
+      true
+    );
     this.element = importedNode.firstElementChild as HTMLFormElement;
-    this.element.id = 'user-input'
+    this.element.id = 'user-input';
 
-    this.titleInputElement = this.element.querySelector('#title') as HTMLInputElement;
-    this.descriptionInputElement = this.element.querySelector('#description') as HTMLInputElement;
-    this.peopleInputElement = this.element.querySelector('#people') as HTMLInputElement;
+    this.titleInputElement = this.element.querySelector(
+      '#title'
+    ) as HTMLInputElement;
+    this.descriptionInputElement = this.element.querySelector(
+      '#description'
+    ) as HTMLInputElement;
+    this.peopleInputElement = this.element.querySelector(
+      '#people'
+    ) as HTMLInputElement;
 
     this.configure();
     this.attach();
@@ -127,15 +202,16 @@ class ProjectInput {
       max: 5
     };
 
-
-
-    if (!validate(titleValidatable) || !validate(descriptionValidatable) || !validate(peopleValidatable)) {
+    if (
+      !validate(titleValidatable) ||
+      !validate(descriptionValidatable) ||
+      !validate(peopleValidatable)
+    ) {
       alert('Invalid input, please try again!');
       return;
     } else {
-      return [enteredTitle, enteredDescription, +enteredPeople] //->change the enteredPeople type
+      return [enteredTitle, enteredDescription, +enteredPeople];
     }
-
   }
 
   private clearInputs() {
@@ -150,14 +226,13 @@ class ProjectInput {
     const userInput = this.gatherUserInput();
     if (Array.isArray(userInput)) {
       const [title, desc, people] = userInput;
-      console.log(title, desc, people);
+      projectState.addProject(title, desc, people);
       this.clearInputs();
     }
   }
 
   private configure() {
-    // set up event listener
-    this.element.addEventListener('submit', this.submitHandler); // addEventListener change the 'this' direction
+    this.element.addEventListener('submit', this.submitHandler);
   }
 
   private attach() {
@@ -165,6 +240,6 @@ class ProjectInput {
   }
 }
 
-const prjInput = new ProjectInput()
+const prjInput = new ProjectInput();
 const activePrjList = new ProjectList('active');
 const finishedPrjList = new ProjectList('finished');

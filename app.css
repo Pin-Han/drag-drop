@@ -55,6 +55,11 @@ button:active {
     border-color: #a80041;
 }
 
+#app {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
 .projects {
     margin: 1rem;
     border: 1px solid #ff0062;
