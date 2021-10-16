@@ -5,6 +5,20 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var ProjectStatus;
+(function (ProjectStatus) {
+    ProjectStatus[ProjectStatus["Active"] = 0] = "Active";
+    ProjectStatus[ProjectStatus["Finished"] = 1] = "Finished";
+})(ProjectStatus || (ProjectStatus = {}));
+class Project {
+    constructor(id, title, description, people, status) {
+        this.id = id;
+        this.title = title;
+        this.description = description;
+        this.people = people;
+        this.status = status;
+    }
+}
 class ProjectState {
     constructor() {
         this.listeners = [];
@@ -21,21 +35,14 @@ class ProjectState {
         this.listeners.push(listenerFn);
     }
     addProject(title, description, numOfPeople) {
-        const newProject = {
-            id: Math.random().toString(),
-            title: title,
-            description: description,
-            people: numOfPeople
-        };
+        const newProject = new Project(Math.random().toString(), title, description, numOfPeople, ProjectStatus.Active);
         this.projects.push(newProject);
-        console.log('listener', this.listeners, this.projects);
         for (const listenerFn of this.listeners) {
             listenerFn(this.projects.slice());
         }
     }
 }
 const projectState = ProjectState.getInstance();
-console.log('projectState', projectState);
 function validate(validatableInput) {
     let isValid = true;
     if (validatableInput.required) {
@@ -82,8 +89,13 @@ class ProjectList {
         this.element = importedNode.firstElementChild;
         this.element.id = `${this.type}-projects`;
         projectState.addListener((projects) => {
-            console.log('project', projects);
-            this.assignedProjects = projects;
+            const relevantProjects = projects.filter(prj => {
+                if (this.type === 'active') {
+                    return prj.status === ProjectStatus.Active;
+                }
+                return prj.status === ProjectStatus.Finished;
+            });
+            this.assignedProjects = relevantProjects;
             this.renderProjects();
         });
         this.attach();
@@ -91,6 +103,7 @@ class ProjectList {
     }
     renderProjects() {
         const listEl = document.getElementById(`${this.type}-projects-list`);
+        listEl.innerHTML = '';
         for (const prjItem of this.assignedProjects) {
             const listItem = document.createElement('li');
             listItem.textContent = prjItem.title;
