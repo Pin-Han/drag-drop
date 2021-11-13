@@ -1,11 +1,13 @@
 import { DragTarget } from '../models/drag-drop';
 import { Project, ProjectStatus } from '../models/project';
-import Cmp from './base-component';
+import Component from './base-component';
 import { autobind } from '../decorators/autobind';
 import { projectState } from '../state/project-state';
 import { ProjectItem } from './project-item';
+
 // ProjectList Class
-export class ProjectList extends Cmp<HTMLDivElement, HTMLElement> implements DragTarget {
+export class ProjectList extends Component<HTMLDivElement, HTMLElement>
+  implements DragTarget {
   assignedProjects: Project[];
 
   constructor(private type: 'active' | 'finished') {
@@ -23,14 +25,15 @@ export class ProjectList extends Cmp<HTMLDivElement, HTMLElement> implements Dra
       const listEl = this.element.querySelector('ul')!;
       listEl.classList.add('droppable');
     }
-
   }
 
   @autobind
   dropHandler(event: DragEvent) {
-    console.log('dropHandler', event.dataTransfer!.getData('text/plain'));
-    const prjId = event.dataTransfer!.getData('text/plain')
-    projectState.moveProject(prjId, this.type === 'active' ? ProjectStatus.Active : ProjectStatus.Finished)
+    const prjId = event.dataTransfer!.getData('text/plain');
+    projectState.moveProject(
+      prjId,
+      this.type === 'active' ? ProjectStatus.Active : ProjectStatus.Finished
+    );
   }
 
   @autobind
@@ -38,6 +41,7 @@ export class ProjectList extends Cmp<HTMLDivElement, HTMLElement> implements Dra
     const listEl = this.element.querySelector('ul')!;
     listEl.classList.remove('droppable');
   }
+
   configure() {
     this.element.addEventListener('dragover', this.dragOverHandler);
     this.element.addEventListener('dragleave', this.dragLeaveHandler);
@@ -68,10 +72,7 @@ export class ProjectList extends Cmp<HTMLDivElement, HTMLElement> implements Dra
     )! as HTMLUListElement;
     listEl.innerHTML = '';
     for (const prjItem of this.assignedProjects) {
-      // const listItem = document.createElement('li');
-      // listItem.textContent = prjItem.title;
-      // listEl.appendChild(listItem);
-      new ProjectItem(this.element.querySelector('ul')!.id, prjItem)
+      new ProjectItem(this.element.querySelector('ul')!.id, prjItem);
     }
   }
 }
